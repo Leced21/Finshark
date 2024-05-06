@@ -4,10 +4,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using api.Data;
 using api.Dtos.Stock;
+using api.Helpers;
 using api.Interfaces;
 using api.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.OpenApi.Expressions;
 
 namespace api.Repository
 {
@@ -38,14 +40,37 @@ namespace api.Repository
             return stockModel;
         }
 
-        public async Task<List<Stock>> GetAllAsync()
+        public async Task<List<Stock>> GetAllAsync(QueryObject query)
         {
-            return await _context.Stocks.Include(c=>c.Comments).ToListAsync();
+            var stocks = _context.Stocks.Include(c=>c.Comments).AsQueryable();
+
+           if(!string.IsNullOrEmpty(query.CompanyName))
+           {
+                stocks=stocks.Where(c=>c.CompanyName.Contains(query.CompanyName));
+           }
+           if(!string.IsNullOrEmpty(query.Symbol))
+           {
+            stocks=stocks.Where(s=>s.Symbol.Contains(query.Symbol));
+           }
+           if(!string.IsNullOrWhiteSpace(query.Sortby))
+           {
+                if(query.Sortby.Equals("Symbol", StringComparison.OrdinalIgnoreCase))
+                {
+                    stocks=query.IsDescending?stocks.OrderByDescending(c=>c.Symbol):stocks.OrderBy(c=>c.Symbol);
+                }
+           }
+           var skipnumber=(query.PageNumber-1)*query.PageSize;
+           return await stocks.Skip(skipnumber).Take(query.PageSize).ToListAsync();
         }
 
         public async Task<Stock?> GetByIdAsync(int id)
         {
             return await _context.Stocks.Include(c=>c.Comments).FirstOrDefaultAsync(i=>i.Id==id);
+        }
+
+        public Task<bool> StockExists(int id)
+        {
+            return _context.Stocks.AnyAsync(x=>x.Id==id);
         }
 
         public async Task<Stock?> UpdateAsync(int id, UpdateStockRequestDto stockDto)
