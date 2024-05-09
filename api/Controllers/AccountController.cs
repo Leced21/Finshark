@@ -23,7 +23,7 @@ namespace api.Controllers
         }
 
         [HttpPost("login")]
-        [Authorize]
+        // [Authorize]
         public async Task<IActionResult> Login(LoginDto loginDto)
         {
             if(!ModelState.IsValid)
@@ -45,7 +45,7 @@ namespace api.Controllers
         }
 
         [HttpPost("register")]
-        [Authorize]
+        // [Authorize]
         public async Task<IActionResult> Register ([FromBody] RegisterDto registerDto)
         {
             try
